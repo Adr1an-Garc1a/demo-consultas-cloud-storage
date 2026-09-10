@@ -1,0 +1,48 @@
+steps:
+  - id: build
+    name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "build",
+        "-t", "${_IMAGE}:${SHORT_SHA}",
+        "-t", "${_IMAGE}:latest",
+        "./app",
+      ]
+
+  - id: push-sha
+    name: "gcr.io/cloud-builders/docker"
+    args: ["push", "${_IMAGE}:${SHORT_SHA}"]
+
+  - id: push-latest
+    name: "gcr.io/cloud-builders/docker"
+    args: ["push", "${_IMAGE}:latest"]
+
+  - id: deploy
+    name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - "${_SERVICE}"
+      - "--image=${_IMAGE}:${SHORT_SHA}"
+      - "--region=${_REGION}"
+      - "--service-account=${_SA_EMAIL}"
+      - "--platform=managed"
+      - "--allow-unauthenticated"
+      - "--quiet"
+      - "--set-env-vars=BUCKET_NAME=${_BUCKET_NAME},GCP_PROJECT_ID=$PROJECT_ID"
+      - "--set-secrets=FLASK_SECRET_KEY=sm-demo-consultas-cloud-storage-flask-secret:latest,GOOGLE_CLIENT_ID=sm-demo-consultas-cloud-storage-oauth-client-id:latest,GOOGLE_CLIENT_SECRET=sm-demo-consultas-cloud-storage-oauth-client-secret:latest,ALLOWED_EMAILS=sm-demo-consultas-cloud-storage-allowed-emails:latest"
+
+images:
+  - "${_IMAGE}:${SHORT_SHA}"
+  - "${_IMAGE}:latest"
+
+substitutions:
+  _IMAGE: "us-central1-docker.pkg.dev/PROJECT_ID/ar-demo-consultas-cloud-storage/run-demo-consultas-cloud-storage"
+  _SERVICE: "run-demo-consultas-cloud-storage"
+  _REGION: "us-central1"
+  _SA_EMAIL: "sa-demo-consultas-cs@PROJECT_ID.iam.gserviceaccount.com"
+  _BUCKET_NAME: "bck-demo-consultas-cloud-storage"
+
+options:
+  logging: CLOUD_LOGGING_ONLY

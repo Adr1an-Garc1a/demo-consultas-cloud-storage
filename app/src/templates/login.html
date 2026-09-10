@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Iniciar sesión · Consultas Cloud Storage{% endblock %}
+{% block content %}
+<main class="login-screen">
+  <section class="login-card">
+    <span class="mark">CCS</span>
+    <h1>Tus documentos, sin límite de espacio</h1>
+    <p>Inicia sesión con la cuenta de Google que usa tu equipo para ver, subir y administrar los archivos del cliente.</p>
+
+    {% if error %}
+      <p class="error-banner">{{ error }}</p>
+    {% endif %}
+
+    <div class="signin-slot">
+      <div id="g_id_onload"
+           data-client_id="{{ google_client_id }}"
+           data-login_uri="/auth/google/callback"
+           data-ux_mode="redirect">
+      </div>
+      <div class="g_id_signin"
+           data-type="standard"
+           data-shape="pill"
+           data-theme="outline"
+           data-size="large"
+           data-text="signin_with">
+      </div>
+    </div>
+
+    <p class="fine-print">El acceso está restringido a las cuentas autorizadas por el administrador.</p>
+  </section>
+</main>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+{% endblock %}

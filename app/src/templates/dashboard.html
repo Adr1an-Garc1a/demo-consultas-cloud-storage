@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Documentos · Consultas Cloud Storage{% endblock %}
+{% block content %}
+<div class="app-shell">
+  <header class="topbar">
+    <span class="mark">CCS</span>
+    <div class="user-chip">
+      {% if user.picture %}<img src="{{ user.picture }}" alt="">{% endif %}
+      <span>{{ user.name }}</span>
+      <form action="/logout" method="post">
+        <button class="link-button" type="submit">Salir</button>
+      </form>
+    </div>
+  </header>
+
+  <main class="container">
+    <div id="dropzone" class="dropzone" tabindex="0">
+      <p class="dropzone-title">Suelta tus archivos aquí</p>
+      <p class="dropzone-subtitle">o</p>
+      <label class="button-primary">
+        Elegir desde el equipo
+        <input id="file-input" type="file" multiple hidden>
+      </label>
+    </div>
+
+    <section class="files-section">
+      <div class="files-header">
+        <h2>Documentos</h2>
+        <span id="files-count" class="files-count"></span>
+      </div>
+
+      <table class="files-table">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Tamaño</th>
+            <th>Última actualización</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="files-body"></tbody>
+      </table>
+
+      <p id="empty-state" class="empty-state" hidden>
+        Aún no hay documentos. Arrastra el primero a la zona de arriba.
+      </p>
+    </section>
+  </main>
+</div>
+
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}
