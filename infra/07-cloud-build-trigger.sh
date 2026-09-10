@@ -3,32 +3,39 @@ set -euo pipefail
 source "$(dirname "$0")/00-variables.sh"
 
 # Prerrequisito manual (una sola vez, vía consola):
-#   Cloud Build > Repositorios > Conectar repositorio > GitHub > autorizar
-#   la GitHub App de Cloud Build sobre tu cuenta/organización y seleccionar
-#   el repo. Esto no se puede automatizar por CLI porque requiere el flujo
-#   de instalación de la GitHub App en el navegador.
+#   Cloud Build > Repositorios > Conectar host > GitHub > autoriza la
+#   GitHub App, crea una CONEXIÓN de 2a generación (región = "${REGION}",
+#   "global" no es válido) y vincula tu repositorio dentro de esa conexión.
+#   Esto no se puede automatizar por CLI porque requiere el flujo de
+#   autorización OAuth de GitHub en el navegador.
 #
-# Reemplaza estos dos valores antes de ejecutar:
-GITHUB_OWNER="TU_USUARIO_O_ORG_GITHUB"
-GITHUB_REPO="TU_REPO_GITHUB"
+# Reemplaza estos dos valores con lo que hayas creado en la consola:
+CONNECTION_NAME="TU_CONEXION_GITHUB"   # nombre que le diste a la conexión
+GITHUB_REPO="TU_REPO_GITHUB"           # nombre del repo tal como quedó vinculado
+
+REPOSITORY_RESOURCE="projects/${PROJECT_ID}/locations/${REGION}/connections/${CONNECTION_NAME}/repositories/${GITHUB_REPO}"
 
 # Cloud Build necesita permisos para desplegar en Cloud Run y para
 # "actuar como" la Service Account de runtime.
+# --condition=None evita el prompt de "policy contains bindings with
+# conditions" en proyectos que ya tienen bindings condicionales.
 CB_SA="${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com"
 
 gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
   --member="serviceAccount:${CB_SA}" \
-  --role="roles/run.admin" >/dev/null
+  --role="roles/run.admin" \
+  --condition=None >/dev/null
 
 gcloud iam service-accounts add-iam-policy-binding "${SA_EMAIL}" \
   --member="serviceAccount:${CB_SA}" \
   --role="roles/iam.serviceAccountUser" \
-  --project="${PROJECT_ID}" >/dev/null
+  --project="${PROJECT_ID}" \
+  --condition=None >/dev/null
 
 gcloud builds triggers create github \
   --name="${CB_TRIGGER}" \
-  --repo-name="${GITHUB_REPO}" \
-  --repo-owner="${GITHUB_OWNER}" \
+  --region="${REGION}" \
+  --repository="${REPOSITORY_RESOURCE}" \
   --branch-pattern="^main$" \
   --build-config="cloudbuild.yaml" \
   --substitutions="_IMAGE=${IMAGE_NAME},_SERVICE=${RUN_SERVICE},_REGION=${REGION},_SA_EMAIL=${SA_EMAIL},_BUCKET_NAME=${BUCKET_NAME}" \

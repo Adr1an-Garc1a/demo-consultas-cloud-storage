@@ -93,14 +93,29 @@ Credentials de Google** y agrega:
 - *Authorized JavaScript origins*: la URL de Cloud Run.
 - *Authorized redirect URIs*: la misma URL + `/auth/google/callback`.
 
+### CORS del bucket (imprescindible para subir/ver archivos)
+
+Las subidas y descargas van del navegador **directo** a Cloud Storage vía
+Signed URLs, así que son peticiones cross-origin. Sin esto, subir un
+archivo falla en silencio (el navegador bloquea la petición antes de que
+salga, sin mostrar error de servidor):
+
+```bash
+./06b-configure-cors.sh
+```
+
+Vuelve a correrlo si más adelante cambias de región, de nombre de servicio,
+o mapeas un dominio propio a Cloud Run.
+
 ### CI/CD desde GitHub (opcional pero recomendado)
 
 1. Sube este repo a GitHub.
-2. En la consola: **Cloud Build → Repositorios → Conectar repositorio →
-   GitHub**, autoriza la GitHub App y selecciona el repo (paso único,
-   requiere navegador).
-3. Edita `infra/07-cloud-build-trigger.sh` con tu usuario/repo de GitHub y
-   ejecútalo:
+2. En la consola: **Cloud Build → Repositorios → Conectar host → GitHub**,
+   autoriza la GitHub App y crea una **conexión de 2ª generación** (usa la
+   misma región que `REGION`, `global` no es válido para 2nd gen). Vincula
+   tu repositorio dentro de esa conexión (paso único, requiere navegador).
+3. Edita `infra/07-cloud-build-trigger.sh` con el nombre de la conexión y
+   del repo tal como quedaron en la consola, y ejecútalo:
 
    ```bash
    ./07-cloud-build-trigger.sh

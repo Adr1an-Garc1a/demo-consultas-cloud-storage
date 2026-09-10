@@ -62,62 +62,79 @@ function renderFiles(files) {
 }
 
 async function loadFiles() {
-  const response = await fetch("/api/files");
-  if (!response.ok) return;
-  renderFiles(await response.json());
+  try {
+    const response = await fetch("/api/files");
+    if (!response.ok) throw new Error(`status ${response.status}`);
+    renderFiles(await response.json());
+  } catch (err) {
+    console.error("Error cargando archivos:", err);
+    alert("No se pudo cargar la lista de documentos. Revisa la consola del navegador.");
+  }
 }
 
 async function openFile(name) {
-  const response = await fetch(`/api/files/${encodeURIComponent(name)}/download-url`);
-  if (!response.ok) {
+  try {
+    const response = await fetch(`/api/files/${encodeURIComponent(name)}/download-url`);
+    if (!response.ok) throw new Error(`status ${response.status}`);
+    const { download_url: downloadUrl } = await response.json();
+    window.open(downloadUrl, "_blank", "noopener");
+  } catch (err) {
+    console.error("Error generando enlace de descarga:", err);
     alert("No se pudo generar el enlace del archivo.");
-    return;
   }
-  const { download_url: downloadUrl } = await response.json();
-  window.open(downloadUrl, "_blank", "noopener");
 }
 
 async function removeFile(name) {
   if (!confirm(`¿Eliminar "${name}"? Esta acción no se puede deshacer.`)) return;
 
-  const response = await fetch(`/api/files/${encodeURIComponent(name)}`, { method: "DELETE" });
-  if (!response.ok) {
+  try {
+    const response = await fetch(`/api/files/${encodeURIComponent(name)}`, { method: "DELETE" });
+    if (!response.ok) throw new Error(`status ${response.status}`);
+    await loadFiles();
+  } catch (err) {
+    console.error("Error eliminando archivo:", err);
     alert("No se pudo eliminar el archivo.");
-    return;
   }
-  await loadFiles();
 }
 
 async function uploadFile(file) {
-  const urlResponse = await fetch("/api/files/upload-url", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      filename: file.name,
-      content_type: file.type || "application/octet-stream",
-    }),
-  });
+  try {
+    const urlResponse = await fetch("/api/files/upload-url", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        filename: file.name,
+        content_type: file.type || "application/octet-stream",
+      }),
+    });
 
-  if (!urlResponse.ok) {
-    alert(`No se pudo iniciar la subida de "${file.name}".`);
-    return;
+    if (!urlResponse.ok) {
+      const body = await urlResponse.json().catch(() => ({}));
+      alert(`No se pudo iniciar la subida de "${file.name}": ${body.error || urlResponse.status}`);
+      return;
+    }
+
+    const { upload_url: uploadUrl } = await urlResponse.json();
+
+    // El navegador sube directo a Cloud Storage; Cloud Run nunca ve el contenido.
+    const putResponse = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: { "Content-Type": file.type || "application/octet-stream" },
+      body: file,
+    });
+
+    if (!putResponse.ok) {
+      alert(`Error al subir "${file.name}" (status ${putResponse.status}).`);
+      return;
+    }
+
+    await loadFiles();
+  } catch (err) {
+    // Un fetch() bloqueado por CORS llega aquí como error de red genérico,
+    // no como una respuesta con status: por eso el try/catch es necesario.
+    console.error(`Error subiendo "${file.name}":`, err);
+    alert(`No se pudo subir "${file.name}". Revisa la consola del navegador (F12) para más detalle.`);
   }
-
-  const { upload_url: uploadUrl } = await urlResponse.json();
-
-  // El navegador sube directo a Cloud Storage; Cloud Run nunca ve el contenido.
-  const putResponse = await fetch(uploadUrl, {
-    method: "PUT",
-    headers: { "Content-Type": file.type || "application/octet-stream" },
-    body: file,
-  });
-
-  if (!putResponse.ok) {
-    alert(`Error al subir "${file.name}".`);
-    return;
-  }
-
-  await loadFiles();
 }
 
 function handleFiles(fileList) {
