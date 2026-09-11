@@ -26,6 +26,21 @@ gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
   --role="roles/run.admin" \
   --condition=None >/dev/null
 
+gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
+  --member="serviceAccount:${CB_SA}" \
+  --role="roles/cloudbuild.builds.builder" \
+  --condition=None >/dev/null
+
+gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
+  --member="serviceAccount:${CB_SA}" \
+  --role="roles/artifactregistry.writer" \
+  --condition=None >/dev/null
+
+gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
+  --member="serviceAccount:${CB_SA}" \
+  --role="roles/logging.logWriter" \
+  --condition=None >/dev/null
+
 gcloud iam service-accounts add-iam-policy-binding "${SA_EMAIL}" \
   --member="serviceAccount:${CB_SA}" \
   --role="roles/iam.serviceAccountUser" \
@@ -36,6 +51,7 @@ gcloud builds triggers create github \
   --name="${CB_TRIGGER}" \
   --region="${REGION}" \
   --repository="${REPOSITORY_RESOURCE}" \
+  --service-account="projects/${PROJECT_ID}/serviceAccounts/${CB_SA}" \
   --branch-pattern="^main$" \
   --build-config="cloudbuild.yaml" \
   --substitutions="_IMAGE=${IMAGE_NAME},_SERVICE=${RUN_SERVICE},_REGION=${REGION},_SA_EMAIL=${SA_EMAIL},_BUCKET_NAME=${BUCKET_NAME}" \
