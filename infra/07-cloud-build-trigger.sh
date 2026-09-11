@@ -10,8 +10,8 @@ source "$(dirname "$0")/00-variables.sh"
 #   autorización OAuth de GitHub en el navegador.
 #
 # Reemplaza estos dos valores con lo que hayas creado en la consola:
-CONNECTION_NAME="TU_CONEXION_GITHUB"   # nombre que le diste a la conexión
-GITHUB_REPO="TU_REPO_GITHUB"           # nombre del repo tal como quedó vinculado
+CONNECTION_NAME="adr-garcia-github-demos"   # nombre que le diste a la conexión
+GITHUB_REPO="demo-consultas-cloud-storage"           # nombre del repo tal como quedó vinculado
 
 REPOSITORY_RESOURCE="projects/${PROJECT_ID}/locations/${REGION}/connections/${CONNECTION_NAME}/repositories/${GITHUB_REPO}"
 
