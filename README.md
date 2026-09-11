@@ -181,6 +181,50 @@ pytest
 - Bucket con acceso público bloqueado (`--public-access-prevention`),
   acceso uniforme a nivel de bucket y versionado activado.
 
+## Costos: qué se optimizó y por qué
+
+| Recurso | Configuración | Razonamiento |
+|---|---|---|
+| Cloud Run `min-instances` | `0` | Cero costo cuando nadie usa la app. |
+| Cloud Run `max-instances` | `1` | Techo de un solo contenedor activo a la vez. |
+| Cloud Run `memory` / `cpu` | `256Mi` / `1` | La app solo firma URLs y responde JSON pequeño; nunca mueve el contenido de los archivos. |
+| Cloud Run `concurrency` | default (80) | Sin cambios respecto al original. |
+| Gunicorn | 2 workers × 4 threads | Sin cambios respecto al original. |
+| Cloud Run `cpu-boost` | activado | Costo extra despreciable; compensa la latencia de arranque en frío que introduce `min-instances=0`. |
+| Bucket | `STANDARD`, single-region | Más barato que Nearline/Coldline para acceso frecuente, y sin cargos de recuperación anticipada. |
+| Cloud Run y bucket | misma región | Evita cargos de egress entre regiones. |
+| Subida/descarga de archivos | Signed URLs directo navegador↔GCS | Cloud Run nunca transfiere bytes de archivos: cero egress ahí. |
+| Artifact Registry | cleanup policy (conserva 5 versiones) | Sin esto, cada build acumula una imagen más sin límite. |
+| Lifecycle del bucket | borra versiones viejas a los 30 días | Margen amplio para deshacer un error de borrado/edición. |
+
+**Trade-off que sí existe:** con `min-instances=0`, la primera visita después de un rato sin uso tiene un arranque en frío (típicamente 1–3 segundos en un contenedor Python pequeño como este). `--cpu-boost` lo reduce, pero no lo elimina — es el costo inherente de no pagar por una instancia siempre encendida. Si en algún momento el cliente reporta que ese delay inicial molesta, la única forma de eliminarlo del todo es subir `min-instances` a `1`, lo cual sí implica una instancia facturándose de forma continua.
+
+## Aplicar estos cambios si ya tenías la infra desplegada
+
+Como el bucket y el Artifact Registry ya existían, no basta con volver a correr `02` y `03` completos la primera vez (ya se corrigió para que sean idempotentes de aquí en adelante). Para aplicar los ajustes de esta ronda sobre recursos ya creados:
+
+```bash
+# 1) Cloud Run: reconstruye la imagen (recoge el cambio de gunicorn) y redespliega
+./06-build-and-deploy.sh
+
+# 2) Bucket: aplica el lifecycle de 30 días
+source 00-variables.sh
+cat > /tmp/lifecycle-${BUCKET_NAME}.json <<'EOF'
+{"rule": [{"action": {"type": "Delete"}, "condition": {"isLive": false, "daysSinceNoncurrentTime": 30}}]}
+EOF
+gcloud storage buckets update "gs://${BUCKET_NAME}" --lifecycle-file="/tmp/lifecycle-${BUCKET_NAME}.json"
+
+# 3) Artifact Registry: aplica la política de limpieza
+cat > /tmp/ar-cleanup-${AR_REPO}.json <<'EOF'
+[
+  {"name": "keep-most-recent-5", "action": {"type": "Keep"}, "mostRecentVersions": {"keepCount": 5}},
+  {"name": "delete-old-untagged", "action": {"type": "Delete"}, "condition": {"tagState": "UNTAGGED", "olderThan": "604800s"}}
+]
+EOF
+gcloud artifacts repositories set-cleanup-policies "${AR_REPO}" \
+  --location="${REGION}" --project="${PROJECT_ID}" --policy="/tmp/ar-cleanup-${AR_REPO}.json"
+```
+
 ## Posibles siguientes pasos (fuera del alcance de esta demo)
 
 - Cloud Armor / rate limiting frente a Cloud Run.
