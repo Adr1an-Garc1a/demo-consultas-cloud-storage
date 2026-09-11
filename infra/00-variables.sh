@@ -13,14 +13,14 @@ export PROJECT_NUMBER="$(gcloud projects describe "${PROJECT_ID}" --format='valu
 export REGION="us-central1"
 
 # --- Nomenclatura: <abreviatura>-demo-consultas-cloud-storage ---
-export BUCKET_NAME="bck-demo-consultas-cloud-storage"
-export AR_REPO="ar-demo-consultas-cloud-storage"
-export RUN_SERVICE="run-demo-consultas-cloud-storage"
-export CB_TRIGGER="cb-demo-consultas-cloud-storage"
+export BUCKET_NAME="bck-demo-consultas-cloud-storage-adr"
+export AR_REPO="ar-demo-consultas-cloud-storage-adr"
+export RUN_SERVICE="run-demo-consultas-cloud-storage-adr"
+export CB_TRIGGER="cb-demo-consultas-cloud-storage-adr"
 
 # El Service Account ID tiene un límite duro de GCP de 30 caracteres,
 # por eso aquí se abrevia "cloud-storage" -> "cs".
-export SA_NAME="sa-demo-consultas-cs"
+export SA_NAME="sa-demo-consultas-cs-adr"
 export SA_EMAIL="${SA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
 
 # Secretos en Secret Manager

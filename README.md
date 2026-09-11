@@ -29,16 +29,6 @@ Navegador ──(PUT/GET directo, sin pasar por Cloud Run)──┘
 - **Artifact Registry + Cloud Build**: build de la imagen y despliegue
   continuo desde GitHub.
 
-## Nomenclatura de recursos
-
-| Recurso | Nombre |
-|---|---|
-| Bucket | `bck-demo-consultas-cloud-storage` |
-| Cloud Run | `run-demo-consultas-cloud-storage` |
-| Artifact Registry | `ar-demo-consultas-cloud-storage` |
-| Service Account | `sa-demo-consultas-cs` *(abreviado por el límite de 30 caracteres de IAM)* |
-| Cloud Build trigger | `cb-demo-consultas-cloud-storage` |
-| Secretos | `sm-demo-consultas-cloud-storage-*` |
 
 ## 1. Crear la infraestructura (Cloud Shell)
 
